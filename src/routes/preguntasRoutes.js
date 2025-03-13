@@ -1,7 +1,7 @@
 // routes/preguntaRoutes.js
 const express = require("express");
 const router = express.Router();
-const preguntaController = require("../controllers/PreguntaController");
+const preguntaController = require("../controllers/preguntaController");
 
 // Definir las rutas
 router.post("/", preguntaController.createPregunta);
