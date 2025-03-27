@@ -71,6 +71,7 @@ exports.getUsuariosTaller = async (req, res) => {
     const usuarios = await Usuario.findAll({
       where: { modalidad: 'Taller' },
       attributes: [
+        'id',
         'compania',
         'industriaSector',
         'areaDesempeno',
@@ -97,6 +98,7 @@ exports.getUsuariosCurso = async (req, res) => {
     const usuarios = await Usuario.findAll({
       where: { modalidad: 'Curso' },
       attributes: [
+        'id',
         'nombre',
         'apellido',
         'email',
