@@ -20,6 +20,11 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING,
       allowNull: false,
     },
+    modalidad: {
+      type: DataTypes.ENUM('Taller', 'Curso'), // Solo permite estos dos valores
+      allowNull: false,
+      defaultValue: 'Curso', // Valor por defecto
+    }
   });
 
 }

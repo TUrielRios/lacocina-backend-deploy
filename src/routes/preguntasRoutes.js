@@ -9,5 +9,7 @@ router.get("/", preguntaController.getPreguntas);
 router.get("/:id", preguntaController.getPreguntaById);
 router.put("/:id", preguntaController.updatePregunta);
 router.delete("/:id", preguntaController.deletePregunta);
+router.post("/duplicate-to-taller", preguntaController.duplicateToTaller); // Nueva ruta
+
 
 module.exports = router;

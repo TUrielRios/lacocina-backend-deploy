@@ -67,3 +67,36 @@ exports.deletePregunta = async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 };
+
+exports.duplicateToTaller = async (req, res) => {
+  try {
+    // Obtener todas las preguntas con modalidad Curso (o todas si modalidad no está definida)
+    const preguntasCurso = await Pregunta.findAll({
+      where: {
+        modalidad: ['Curso', null] // Para cubrir preguntas existentes sin modalidad
+      }
+    });
+
+    // Crear nuevas preguntas con modalidad Taller
+    const nuevasPreguntas = await Promise.all(
+      preguntasCurso.map(async (pregunta) => {
+        return await Pregunta.create({
+          text: pregunta.text,
+          category: pregunta.category,
+          phase: pregunta.phase,
+          modalidad: 'Taller' // Establecer la nueva modalidad
+        });
+      })
+    );
+
+    res.status(201).json({
+      message: `Se crearon ${nuevasPreguntas.length} nuevas preguntas con modalidad Taller`,
+      nuevasPreguntas
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      error: "Error al duplicar preguntas",
+      details: error.message 
+    });
+  }
+};
