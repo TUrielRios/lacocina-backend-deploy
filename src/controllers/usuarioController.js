@@ -1,4 +1,4 @@
-const { Usuario } = require("../db");
+const { Usuario, sequelize } = require("../db");
 
 // Crear usuario con validación de campos según modalidad
 exports.createUsuario = async (req, res) => {
@@ -71,6 +71,9 @@ exports.getUsuariosTaller = async (req, res) => {
     const usuarios = await Usuario.findAll({
       where: { modalidad: 'Taller' },
       attributes: [
+        'compania',
+        'industriaSector',
+        'areaDesempeno',
         'codigoTaller',
         'validacionSocial',
         'atractivo',

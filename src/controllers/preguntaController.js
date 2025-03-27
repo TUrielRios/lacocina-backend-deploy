@@ -1,5 +1,5 @@
 // controllers/preguntaController.js
-const {Pregunta} = require("../db");
+const {Pregunta, sequelize} = require("../db");
 
 // Crear una pregunta
 exports.createPregunta = async (req, res) => {
@@ -68,35 +68,60 @@ exports.deletePregunta = async (req, res) => {
   }
 };
 
-exports.duplicateToTaller = async (req, res) => {
+
+// Corregir duplicación de preguntas
+exports.fixDuplicatedQuestions = async (req, res) => {
+  const transaction = await sequelize.transaction();
   try {
-    // Obtener todas las preguntas con modalidad Curso (o todas si modalidad no está definida)
-    const preguntasCurso = await Pregunta.findAll({
-      where: {
-        modalidad: ['Curso', null] // Para cubrir preguntas existentes sin modalidad
-      }
+    // Paso 1: Eliminar preguntas Taller existentes (por si hay)
+    await Pregunta.destroy({
+      where: { modalidad: 'Taller' },
+      transaction
     });
 
-    // Crear nuevas preguntas con modalidad Taller
-    const nuevasPreguntas = await Promise.all(
-      preguntasCurso.map(async (pregunta) => {
-        return await Pregunta.create({
-          text: pregunta.text,
-          category: pregunta.category,
-          phase: pregunta.phase,
-          modalidad: 'Taller' // Establecer la nueva modalidad
-        });
-      })
+    // Paso 2: Obtener preguntas originales (Curso)
+    const originalQuestions = await Pregunta.findAll({
+      where: { modalidad: 'Curso' },
+      order: [['id', 'ASC']],
+      limit: 60,
+      transaction
+    });
+
+    if (originalQuestions.length !== 60) {
+      await transaction.rollback();
+      return res.status(400).json({
+        error: `Se esperaban 60 preguntas originales, se encontraron ${originalQuestions.length}`
+      });
+    }
+
+    // Paso 3: Crear versiones Taller
+    const newQuestions = await Promise.all(
+      originalQuestions.map(question => 
+        Pregunta.create({
+          text: question.text,
+          category: question.category,
+          phase: question.phase,
+          modalidad: 'Taller'
+        }, { transaction })
+      )
     );
 
-    res.status(201).json({
-      message: `Se crearon ${nuevasPreguntas.length} nuevas preguntas con modalidad Taller`,
-      nuevasPreguntas
+    await transaction.commit();
+    
+    res.status(200).json({
+      message: 'Preguntas corregidas exitosamente',
+      deletedTallerQuestions: originalQuestions.length,
+      createdTallerQuestions: newQuestions.length,
+      totalCursoQuestions: originalQuestions.length,
+      totalTallerQuestions: newQuestions.length
     });
+
   } catch (error) {
-    res.status(500).json({ 
-      error: "Error al duplicar preguntas",
-      details: error.message 
+    await transaction.rollback();
+    res.status(500).json({
+      error: 'Error al corregir preguntas',
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };
