@@ -64,9 +64,6 @@ exports.validarCodigo = async (req, res) => {
       return res.status(404).json({ valido: false, mensaje: "Código no encontrado" });
     }
     
-    if (codigoEncontrado.usado) {
-      return res.status(400).json({ valido: false, mensaje: "Código ya utilizado" });
-    }
     
     res.status(200).json({
       valido: true,
