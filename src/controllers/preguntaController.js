@@ -1,5 +1,7 @@
 // controllers/preguntaController.js
 const {Pregunta, sequelize} = require("../db");
+const { Sequelize } = require('sequelize');
+
 
 // Crear una pregunta
 exports.createPregunta = async (req, res) => {
@@ -70,58 +72,94 @@ exports.deletePregunta = async (req, res) => {
 
 
 // Corregir duplicación de preguntas
-exports.fixDuplicatedQuestions = async (req, res) => {
+exports.fixQuestionCounts = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
-    // Paso 1: Eliminar preguntas Taller existentes (por si hay)
-    await Pregunta.destroy({
-      where: { modalidad: 'Taller' },
-      transaction
-    });
+    // Paso 1: Contar preguntas
+    const counts = {
+      originalCurso: await Pregunta.count({ where: { modalidad: 'Curso' }, transaction }),
+      originalTaller: await Pregunta.count({ where: { modalidad: 'Taller' }, transaction })
+    };
 
-    // Paso 2: Obtener preguntas originales (Curso)
-    const originalQuestions = await Pregunta.findAll({
-      where: { modalidad: 'Curso' },
-      order: [['id', 'ASC']],
-      limit: 60,
-      transaction
-    });
-
-    if (originalQuestions.length !== 60) {
-      await transaction.rollback();
-      return res.status(400).json({
-        error: `Se esperaban 60 preguntas originales, se encontraron ${originalQuestions.length}`
+    // Paso 2: Eliminar excedentes (versión corregida)
+    if (counts.originalCurso > 60) {
+      const preguntasAConservar = await Pregunta.findAll({
+        attributes: ['id'],
+        where: { modalidad: 'Curso' },
+        order: [['id', 'ASC']],
+        limit: 60,
+        transaction
+      });
+      
+      await Pregunta.destroy({
+        where: {
+          modalidad: 'Curso',
+          id: {
+            [Sequelize.Op.notIn]: preguntasAConservar.map(p => p.id)
+          }
+        },
+        transaction
       });
     }
 
-    // Paso 3: Crear versiones Taller
-    const newQuestions = await Promise.all(
-      originalQuestions.map(question => 
-        Pregunta.create({
-          text: question.text,
-          category: question.category,
-          phase: question.phase,
-          modalidad: 'Taller'
-        }, { transaction })
-      )
-    );
+    if (counts.originalTaller > 60) {
+      const preguntasAConservar = await Pregunta.findAll({
+        attributes: ['id'],
+        where: { modalidad: 'Taller' },
+        order: [['id', 'ASC']],
+        limit: 60,
+        transaction
+      });
+      
+      await Pregunta.destroy({
+        where: {
+          modalidad: 'Taller',
+          id: {
+            [Sequelize.Op.notIn]: preguntasAConservar.map(p => p.id)
+          }
+        },
+        transaction
+      });
+    }
+
+    // Paso 3: Completar preguntas Taller si faltan
+    const currentTallerCount = await Pregunta.count({ where: { modalidad: 'Taller' }, transaction });
+    if (currentTallerCount < 60) {
+      const needed = 60 - currentTallerCount;
+      const baseQuestions = await Pregunta.findAll({
+        where: { modalidad: 'Curso' },
+        order: [['id', 'ASC']],
+        limit: needed,
+        transaction
+      });
+
+      await Promise.all(
+        baseQuestions.map(q => 
+          Pregunta.create({
+            text: q.text,
+            category: q.category,
+            phase: q.phase,
+            modalidad: 'Taller'
+          }, { transaction })
+        )
+      );
+    }
 
     await transaction.commit();
-    
+
     res.status(200).json({
       message: 'Preguntas corregidas exitosamente',
-      deletedTallerQuestions: originalQuestions.length,
-      createdTallerQuestions: newQuestions.length,
-      totalCursoQuestions: originalQuestions.length,
-      totalTallerQuestions: newQuestions.length
+      counts: {
+        curso: await Pregunta.count({ where: { modalidad: 'Curso' } }),
+        taller: await Pregunta.count({ where: { modalidad: 'Taller' } })
+      }
     });
 
   } catch (error) {
     await transaction.rollback();
     res.status(500).json({
       error: 'Error al corregir preguntas',
-      details: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      details: error.message
     });
   }
 };

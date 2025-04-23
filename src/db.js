@@ -3,7 +3,6 @@ const fs = require('fs');
 const path = require('path');
 require('pg')
 const {
-  DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
 } = process.env;
 const sequelize = new Sequelize("postgresql://postgres:MIAHOrTByrziEdIHkAvCznuLHnynpeTa@trolley.proxy.rlwy.net:25773/railway", {
   logging: false, // set to console.log to see the raw SQL queries
@@ -29,7 +28,7 @@ sequelize.models = Object.fromEntries(capsEntries);
 
 // En sequelize.models están todos los modelos importados como propiedades
 // Para relacionarlos hacemos un destructuring
-const { Pregunta, Texto, Usuario } = sequelize.models;
+const { Pregunta, Texto, Usuario, CodigoAcceso, Desplegable } = sequelize.models;
 
 
 

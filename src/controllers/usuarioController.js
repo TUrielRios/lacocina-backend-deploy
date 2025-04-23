@@ -192,3 +192,43 @@ exports.updateUsuario = async (req, res) => {
       res.status(400).json({ error: error.message });
     }
   };
+
+// Borrar un usuario por ID
+exports.deleteUsuario = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const deleted = await Usuario.destroy({
+      where: { id }
+    });
+
+    if (deleted) {
+      res.status(200).json({ message: "Usuario eliminado correctamente" });
+    } else {
+      res.status(404).json({ error: "Usuario no encontrado" });
+    }
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// Borrar múltiples usuarios por IDs
+exports.deleteMultipleUsuarios = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: "Se requiere un array de IDs válido" });
+    }
+
+    const deleted = await Usuario.destroy({
+      where: { id: ids }
+    });
+
+    res.status(200).json({ 
+      message: `${deleted} usuario(s) eliminado(s) correctamente` 
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};

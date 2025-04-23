@@ -9,7 +9,6 @@ router.get("/", preguntaController.getPreguntas);
 router.get("/:id", preguntaController.getPreguntaById);
 router.put("/:id", preguntaController.updatePregunta);
 router.delete("/:id", preguntaController.deletePregunta);
-router.post("/fix-duplicates", preguntaController.fixDuplicatedQuestions);
-
+router.post('/fix-counts', preguntaController.fixQuestionCounts);
 
 module.exports = router;
