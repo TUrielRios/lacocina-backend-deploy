@@ -1,19 +1,51 @@
-const { CodigoAcceso } = require("../db");
+const { sequelize, CodigoAcceso } = require("../db");
 
-// Generar un nuevo código de acceso
-exports.generarCodigo = async (req, res) => {
+
+// Generar código aleatorio (para códigos generales)
+const generarCodigoAleatorio = () => {
+  return Math.random().toString(36).substring(2, 10).toUpperCase();
+};
+
+// Crear o actualizar código único por tipo
+exports.crearActualizarCodigo = async (req, res) => {
+  const transaction = await sequelize.transaction();
   try {
-    const { tipo } = req.body;
+    const { codigo, tipo } = req.body;
     
-    // Generar un código aleatorio de 8 caracteres
-    const codigo = Math.random().toString(36).substring(2, 10).toUpperCase();
+    // Validaciones
+    if (tipo === 'admin' && !codigo) {
+      await transaction.rollback();
+      return res.status(400).json({ error: "Debe proporcionar un código para acceso de admin" });
+    }
     
-    const nuevoCodigo = await CodigoAcceso.create({
-      codigo,
-      tipo
+    // Eliminar código existente del mismo tipo
+    await CodigoAcceso.destroy({
+      where: { tipo },
+      transaction
     });
     
+    // Crear nuevo código
+    const codigoFinal = tipo === 'general' && !codigo ? generarCodigoAleatorio() : codigo;
+    
+    const nuevoCodigo = await CodigoAcceso.create({
+      codigo: codigoFinal,
+      tipo,
+      es_personalizado: !!codigo
+    }, { transaction });
+    
+    await transaction.commit();
     res.status(201).json(nuevoCodigo);
+  } catch (error) {
+    await transaction.rollback();
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// Obtener códigos actuales
+exports.obtenerCodigos = async (req, res) => {
+  try {
+    const codigos = await CodigoAcceso.findAll();
+    res.status(200).json(codigos);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -58,35 +90,6 @@ exports.usarCodigo = async (req, res) => {
     
     if (updated) {
       res.status(200).json({ mensaje: "Código marcado como usado" });
-    } else {
-      res.status(404).json({ error: "Código no encontrado" });
-    }
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
-
-// Listar todos los códigos
-exports.listarCodigos = async (req, res) => {
-  try {
-    const codigos = await CodigoAcceso.findAll({
-      order: [['fecha_creacion', 'DESC']]
-    });
-    res.status(200).json(codigos);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
-
-// Eliminar un código
-exports.eliminarCodigo = async (req, res) => {
-  try {
-    const deleted = await CodigoAcceso.destroy({ 
-      where: { id: req.params.id } 
-    });
-    
-    if (deleted) {
-      res.status(204).send();
     } else {
       res.status(404).json({ error: "Código no encontrado" });
     }

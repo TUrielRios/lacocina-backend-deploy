@@ -1,26 +1,22 @@
 const { Router } = require('express');
 const router = Router();
 const {
-  generarCodigo,
+  crearActualizarCodigo,
+  obtenerCodigos,
   validarCodigo,
-  usarCodigo,
-  listarCodigos,
-  eliminarCodigo
+  usarCodigo
 } = require('../controllers/codigoAccesoController');
 
-// Generar nuevo código
-router.post('/', generarCodigo);
+// Crear o actualizar código (reemplaza el anterior si existe)
+router.post('/', crearActualizarCodigo);
+
+// Obtener códigos actuales (solo habrá 2 como máximo)
+router.get('/', obtenerCodigos);
 
 // Validar código
 router.post('/validar', validarCodigo);
 
 // Marcar código como usado
 router.post('/usar', usarCodigo);
-
-// Listar todos los códigos
-router.get('/', listarCodigos);
-
-// Eliminar código
-router.delete('/:id', eliminarCodigo);
 
 module.exports = router;
