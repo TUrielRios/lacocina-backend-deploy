@@ -8,7 +8,7 @@ module.exports = (sequelize) => {
       autoIncrement: true,
     },
     categoria: {
-      type: DataTypes.ENUM('industriaSector', 'areaDesempeno', 'cargo'),
+      type: DataTypes.ENUM('compania','industriaSector', 'areaDesempeno', 'cargo'),
       allowNull: false,
     },
     valor: {
