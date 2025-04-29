@@ -144,6 +144,8 @@ exports.inicializarDesplegables = async (req, res) => {
     // Valores por defecto
     const valoresPorDefecto = [
 
+      //Cargo
+      {categoria: 'curso', valor: 'Curso de Marketing Digital', orden: 0 },
       // Compañía
       { categoria: 'compania', valor: 'TGS', orden: 0 },
       // Industria/Sector
