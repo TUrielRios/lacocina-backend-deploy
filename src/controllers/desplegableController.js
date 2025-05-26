@@ -1,4 +1,5 @@
-const { Desplegable, sequelize } = require("../db");
+const { Desplegable, sequelize } = require("../db"); 
+const { Op } = require('sequelize');
 
 // Obtener todas las opciones de una categoría
 exports.getOpciones = async (req, res) => {
@@ -84,7 +85,7 @@ exports.deleteOpcion = async (req, res) => {
     await Desplegable.decrement('orden', {
       where: {
         categoria: opcion.categoria,
-        orden: { [sequelize.Op.gt]: opcion.orden }
+        orden: { [Op.gt]: opcion.orden }  // Cambiado aquí
       },
       transaction
     });
