@@ -3,7 +3,7 @@ const { Usuario, sequelize } = require("../db");
 // Crear usuario con validación de campos según modalidad
 exports.createUsuario = async (req, res) => {
   try {
-    const { modalidad, ...userData } = req.body;
+    const { modalidad,mensajeFeedback, ...userData } = req.body;
     
     // Validar campos según modalidad
     if (modalidad === 'Taller') {
@@ -31,7 +31,7 @@ exports.createUsuario = async (req, res) => {
     }
 
     // Validar campos comunes requeridos
-    const commonRequiredFields = ['compania', 'industriaSector', 'areaDesempeno'];
+    const commonRequiredFields = ['compania', 'industriaSector','sector', 'areaDesempeno'];
     const missingCommonFields = commonRequiredFields.filter(field => !userData[field]);
     
     if (missingCommonFields.length > 0) {
@@ -56,6 +56,7 @@ exports.createUsuario = async (req, res) => {
 
     const nuevoUsuario = await Usuario.create({
       modalidad,
+      mensajeFeedback,
       ...userData
     });
 
@@ -74,6 +75,7 @@ exports.getUsuariosTaller = async (req, res) => {
         'id',
         'compania',
         'industriaSector',
+        'sector',
         'areaDesempeno',
         'codigoTaller',
         'validacionSocial',
@@ -82,6 +84,7 @@ exports.getUsuariosTaller = async (req, res) => {
         'autoridad',
         'autenticidad',
         'consistenciaCompromiso',
+        'mensajeFeedback',
         'createdAt'
       ],
       order: [['createdAt', 'DESC']]
@@ -105,6 +108,7 @@ exports.getUsuariosCurso = async (req, res) => {
         'curso',
         'compania',
         'industriaSector',
+        'sector',
         'areaDesempeno',
         'cargo',
         'validacionSocial',
@@ -113,6 +117,7 @@ exports.getUsuariosCurso = async (req, res) => {
         'autoridad',
         'autenticidad',
         'consistenciaCompromiso',
+        'mensajeFeedback',
         'createdAt'
       ],
       order: [['createdAt', 'DESC']]

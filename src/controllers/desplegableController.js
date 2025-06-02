@@ -169,6 +169,11 @@ exports.inicializarDesplegables = async (req, res) => {
       { categoria: 'industriaSector', valor: 'Decoración / Hogar', orden: 16 },
       { categoria: 'industriaSector', valor: 'Higiene / Bienestar', orden: 17 },
       { categoria: 'industriaSector', valor: 'Otro', orden: 18 },
+
+      //Sector
+      {
+        categoria:'sector', valor:'Ejemplo', orden:0
+      },
       
       // Área de Desempeño
       { categoria: 'areaDesempeno', valor: 'Directorio', orden: 0 },

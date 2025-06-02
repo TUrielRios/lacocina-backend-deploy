@@ -20,6 +20,10 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING,
       allowNull: false,
     },
+    sector: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     areaDesempeno: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -85,6 +89,11 @@ module.exports = (sequelize) => {
         type: DataTypes.FLOAT,
         allowNull: true,
         defaultValue: null
+    },
+    mensajeFeedback: {
+    type: DataTypes.TEXT,  // Usamos TEXT para mensajes largos
+    allowNull: true,       // Opcional, ya que no todos dejarán feedback
+    defaultValue: null
     },
     // ... (resto del modelo)
     // Fecha de creación
