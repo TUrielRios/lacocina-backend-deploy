@@ -128,6 +128,21 @@ exports.getUsuariosCurso = async (req, res) => {
   }
 };
 
+// En tu controlador (puedes agregar esta función)
+exports.getUsuario = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const usuario = await Usuario.findByPk(id);
+    
+    if (!usuario) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+    
+    res.status(200).json(usuario);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
 // Obtener estadísticas de promedios
 exports.getEstadisticas = async (req, res) => {
   try {
@@ -151,19 +166,21 @@ exports.getEstadisticas = async (req, res) => {
 };
 
 // Actualizar promedios de un usuario
+// Actualizar usuario (versión modificada)
 exports.updateUsuario = async (req, res) => {
     try {
       const { id } = req.params;
       const updateData = req.body;
       
-      // Validar que solo se actualicen campos permitidos
+      // Campos permitidos para actualización
       const allowedFields = [
         'validacionSocial',
         'atractivo',
         'reciprocidad',
         'autoridad',
         'autenticidad',
-        'consistenciaCompromiso'
+        'consistenciaCompromiso',
+        'mensajeFeedback' // Añadimos este campo
       ];
       
       // Filtrar campos no permitidos
@@ -174,9 +191,18 @@ exports.updateUsuario = async (req, res) => {
           return obj;
         }, {});
   
-      // Validar rangos de los promedios (1-10)
+      // Validar rangos de los promedios (1-10) - solo si vienen en el update
+      const promedios = [
+        'validacionSocial',
+        'atractivo',
+        'reciprocidad',
+        'autoridad',
+        'autenticidad',
+        'consistenciaCompromiso'
+      ];
+      
       for (const [key, value] of Object.entries(filteredUpdate)) {
-        if (value && (value < 1 || value > 10)) {
+        if (promedios.includes(key) && (value < 1 || value > 10)) {
           return res.status(400).json({ 
             error: `El promedio de ${key} debe estar entre 1 y 10` 
           });
@@ -196,7 +222,32 @@ exports.updateUsuario = async (req, res) => {
     } catch (error) {
       res.status(400).json({ error: error.message });
     }
-  };
+};
+
+// Actualizar solo el feedback de un usuario
+exports.updateFeedback = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { mensajeFeedback } = req.body;
+
+    if (!mensajeFeedback) {
+      return res.status(400).json({ error: "El mensaje de feedback es requerido" });
+    }
+
+    const [updated] = await Usuario.update(
+      { mensajeFeedback },
+      { where: { id } }
+    );
+
+    if (updated) {
+      res.status(200).json({ success: true });
+    } else {
+      res.status(404).json({ error: "Usuario no encontrado" });
+    }
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
 
 // Borrar un usuario por ID
 exports.deleteUsuario = async (req, res) => {

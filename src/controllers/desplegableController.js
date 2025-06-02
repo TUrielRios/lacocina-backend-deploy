@@ -146,7 +146,7 @@ exports.inicializarDesplegables = async (req, res) => {
     const valoresPorDefecto = [
 
       //Cargo
-      {categoria: 'curso', valor: 'Curso de Marketing Digital', orden: 0 },
+      {categoria: 'curso', valor: 'Curso IAE Comunicación Institucional 250311', orden: 0 },
       // Compañía
       { categoria: 'compania', valor: 'TGS', orden: 0 },
       // Industria/Sector
@@ -172,7 +172,7 @@ exports.inicializarDesplegables = async (req, res) => {
 
       //Sector
       {
-        categoria:'sector', valor:'Ejemplo', orden:0
+        categoria:'sector', valor:'Franquicia Buenos Aires', orden:0
       },
       
       // Área de Desempeño
