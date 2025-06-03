@@ -20,7 +20,6 @@ module.exports = (sequelize) => {
     isHidden:{
       type: DataTypes.BOOLEAN,
       allowNull: true,       
-
       defaultValue: false,
 
 

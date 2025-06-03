@@ -4,14 +4,22 @@ const { Texto } = require("../db");
 // Crear o actualizar un texto
 exports.createOrUpdateTexto = async (req, res) => {
   try {
-    const { key, value } = req.body;
+    const { key, value, isHidden } = req.body; // Agregar isHidden aquí
+    
     const [texto, created] = await Texto.findOrCreate({
       where: { key },
-      defaults: { value },
+      defaults: { 
+        value,
+        isHidden: isHidden !== undefined ? isHidden : false // Manejar isHidden
+      },
     });
 
     if (!created) {
       texto.value = value;
+      // Solo actualizar isHidden si se proporciona en el request
+      if (isHidden !== undefined) {
+        texto.isHidden = isHidden;
+      }
       await texto.save();
     }
 
