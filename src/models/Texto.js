@@ -17,5 +17,13 @@ module.exports = (sequelize) => {
       type: DataTypes.TEXT,
       allowNull: false,
     },
+    isHidden:{
+      type: DataTypes.BOOLEAN,
+      allowNull: true,       
+
+      defaultValue: false,
+
+
+    }
   });
 };
