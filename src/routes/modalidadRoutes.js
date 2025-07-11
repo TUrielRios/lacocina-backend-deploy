@@ -1,31 +1,13 @@
 // routes/modalidadRoutes.js
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const Modalidad = require("../models/Modalidad");
+const modalidadController = require('../controllers/modalidadController');
 
-// Obtener todas las modalidades
-router.get("/", async (req, res) => {
-  try {
-    const modalidades = await Modalidad.findAll();
-    res.json(modalidades);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// GET /modalidades - Obtener todas las modalidades
+router.get('/', modalidadController.getAllModalidades);
 
-// Actualizar estado (para el admin)
-router.put("/:id", async (req, res) => {
-  try {
-    const modalidad = await Modalidad.findByPk(req.params.id);
-    if (!modalidad) return res.status(404).json({ error: "Modalidad no encontrada" });
-    
-    modalidad.habilitado = req.body.habilitado;
-    await modalidad.save();
-    
-    res.json(modalidad);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// PUT /modalidades/:id - Actualizar una modalidad
+router.put('/:id', modalidadController.updateModalidad);
+router.post('/', modalidadController.createModalidad);
 
 module.exports = router;
