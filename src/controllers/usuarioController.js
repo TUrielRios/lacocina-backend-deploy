@@ -1,7 +1,7 @@
 const { Usuario, RespuestaPregunta, Pregunta, sequelize } = require("../db")
 const { Op } = require("sequelize")
 
-// Crear usuario con respuestas individuales (compatible con formato anterior)
+// Crear usuario con respuestas individuales
 exports.createUsuario = async (req, res) => {
   const transaction = await sequelize.transaction()
   try {
@@ -107,7 +107,6 @@ exports.createUsuario = async (req, res) => {
     res.status(201).json(nuevoUsuario)
   } catch (error) {
     await transaction.rollback()
-    console.error("Error creando usuario:", error)
     res.status(400).json({ error: error.message })
   }
 }
@@ -421,57 +420,149 @@ exports.getEstadisticas = async (req, res) => {
   }
 }
 
-// Actualizar usuario (mantener funcionalidad existente)
+// ACTUALIZAR USUARIO - MODIFICADO para manejar respuestas individuales
 exports.updateUsuario = async (req, res) => {
+  const transaction = await sequelize.transaction()
   try {
     const { id } = req.params
-    const updateData = req.body
+    const { respuestas, mensajeFeedback, ...updateData } = req.body
 
-    const allowedFields = [
-      "validacionSocial",
-      "atractivo",
-      "reciprocidad",
-      "autoridad",
-      "autenticidad",
-      "consistenciaCompromiso",
-      "mensajeFeedback",
-    ]
+    console.log(`Actualizando usuario ${id}:`, { respuestas: respuestas?.length, mensajeFeedback, updateData })
 
-    const filteredUpdate = Object.keys(updateData)
-      .filter((key) => allowedFields.includes(key))
-      .reduce((obj, key) => {
-        obj[key] = updateData[key]
-        return obj
-      }, {})
-
-    const promedios = [
-      "validacionSocial",
-      "atractivo",
-      "reciprocidad",
-      "autoridad",
-      "autenticidad",
-      "consistenciaCompromiso",
-    ]
-
-    for (const [key, value] of Object.entries(filteredUpdate)) {
-      if (promedios.includes(key) && (value < 1 || value > 10)) {
-        return res.status(400).json({
-          error: `El promedio de ${key} debe estar entre 1 y 10`,
-        })
-      }
+    // Verificar que el usuario existe
+    const usuario = await Usuario.findByPk(id, { transaction })
+    if (!usuario) {
+      await transaction.rollback()
+      return res.status(404).json({ error: "Usuario no encontrado" })
     }
 
-    const [updated] = await Usuario.update(filteredUpdate, {
-      where: { id },
+    // Si se proporcionan respuestas individuales, procesarlas
+    if (respuestas && Array.isArray(respuestas) && respuestas.length > 0) {
+      console.log(`Procesando ${respuestas.length} respuestas individuales`)
+
+      // 1. Eliminar respuestas existentes del usuario
+      await RespuestaPregunta.destroy({
+        where: { usuarioId: id },
+        transaction,
+      })
+
+      // 2. Crear nuevas respuestas
+      const respuestasParaGuardar = respuestas.map((respuesta) => ({
+        usuarioId: Number.parseInt(id),
+        preguntaId: respuesta.preguntaId,
+        puntuacion: respuesta.puntuacion,
+        fase: respuesta.fase,
+      }))
+
+      await RespuestaPregunta.bulkCreate(respuestasParaGuardar, { transaction })
+
+      // 3. Calcular promedios por fase
+      const respuestasPorFase = {}
+      respuestas.forEach((respuesta) => {
+        if (!respuestasPorFase[respuesta.fase]) {
+          respuestasPorFase[respuesta.fase] = []
+        }
+        respuestasPorFase[respuesta.fase].push(respuesta.puntuacion)
+      })
+
+      // 4. Calcular y actualizar promedios en el usuario
+      const promediosCalculados = {}
+      const mapeoFases = {
+        validacionSocial: "validacionSocial",
+        atractivo: "atractivo",
+        reciprocidad: "reciprocidad",
+        autoridad: "autoridad",
+        autenticidad: "autenticidad",
+        consistenciaCompromiso: "consistenciaCompromiso",
+      }
+
+      Object.entries(respuestasPorFase).forEach(([fase, puntuaciones]) => {
+        const promedio = puntuaciones.reduce((sum, p) => sum + p, 0) / puntuaciones.length
+        const campoFase = mapeoFases[fase]
+        if (campoFase) {
+          promediosCalculados[campoFase] = Number.parseFloat(promedio.toFixed(2))
+        }
+      })
+
+      console.log("Promedios calculados:", promediosCalculados)
+
+      // Actualizar usuario con promedios calculados
+      await usuario.update(
+        {
+          ...promediosCalculados,
+          mensajeFeedback: mensajeFeedback || usuario.mensajeFeedback,
+        },
+        { transaction },
+      )
+    } else {
+      // Actualización tradicional (solo campos específicos)
+      const allowedFields = [
+        "validacionSocial",
+        "atractivo",
+        "reciprocidad",
+        "autoridad",
+        "autenticidad",
+        "consistenciaCompromiso",
+        "mensajeFeedback",
+      ]
+
+      const filteredUpdate = Object.keys(updateData)
+        .filter((key) => allowedFields.includes(key))
+        .reduce((obj, key) => {
+          obj[key] = updateData[key]
+          return obj
+        }, {})
+
+      if (mensajeFeedback !== undefined) {
+        filteredUpdate.mensajeFeedback = mensajeFeedback
+      }
+
+      // Validar rangos de los promedios (1-10)
+      const promedios = [
+        "validacionSocial",
+        "atractivo",
+        "reciprocidad",
+        "autoridad",
+        "autenticidad",
+        "consistenciaCompromiso",
+      ]
+
+      for (const [key, value] of Object.entries(filteredUpdate)) {
+        if (promedios.includes(key) && (value < 1 || value > 10)) {
+          await transaction.rollback()
+          return res.status(400).json({
+            error: `El promedio de ${key} debe estar entre 1 y 10`,
+          })
+        }
+      }
+
+      await usuario.update(filteredUpdate, { transaction })
+    }
+
+    await transaction.commit()
+
+    // Obtener el usuario actualizado con sus respuestas
+    const usuarioActualizado = await Usuario.findByPk(id, {
+      include: [
+        {
+          model: RespuestaPregunta,
+          as: "respuestas",
+          include: [
+            {
+              model: Pregunta,
+              as: "pregunta",
+              attributes: ["id", "text", "category", "phase", "modalidad"],
+            },
+          ],
+        },
+      ],
     })
 
-    if (updated) {
-      const updatedUsuario = await Usuario.findByPk(id)
-      res.status(200).json(updatedUsuario)
-    } else {
-      res.status(404).json({ error: "Usuario no encontrado" })
-    }
+    console.log(`Usuario ${id} actualizado exitosamente`)
+    res.status(200).json(usuarioActualizado)
   } catch (error) {
+    await transaction.rollback()
+    console.error("Error al actualizar usuario:", error)
     res.status(400).json({ error: error.message })
   }
 }
